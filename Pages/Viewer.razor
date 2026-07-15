@@ -1,4 +1,5 @@
 @page "/"
+@using BimViewer.Localization
 @inject HttpClient Http
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -12,8 +13,8 @@
              @ondragleave="OnDragLeave">
             <InputFile OnChange="OnFileSelected" accept=".ifc,.dxf,.json,application/octet-stream,application/json" />
             <div class="drop-icon">⬡</div>
-            <div class="drop-title">Drop a CAD/BIM file or click to upload</div>
-            <div class="drop-sub">Sends to backend · renders real geometry</div>
+            <div class="drop-title">@T.DropTitle</div>
+            <div class="drop-sub">@T.DropSub</div>
             <div class="drop-formats">
                 <span class="drop-fmt">.IFC</span>
                 <span class="drop-fmt">.DXF</span>
@@ -24,9 +25,9 @@
         <div class="progress-wrap @(_loading ? "active" : "")"><div class="progress-bar"></div></div>
 
         <div class="btn-row">
-            <button class="btn" disabled="@(!_hasModel)" @onclick="DownloadJson">↓ JSON</button>
-            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="Fit">⊡ Fit</button>
-            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="ResetAll">✕</button>
+            <button class="btn" disabled="@(!_hasModel)" @onclick="DownloadJson">@T.BtnDownload</button>
+            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="Fit">@T.BtnFit</button>
+            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="ResetAll">@T.BtnReset</button>
         </div>
 
         <div class="status-badge @_statusClass">@_statusText</div>
@@ -34,10 +35,10 @@
         @if (_hasModel && _stats is not null)
         {
             <div class="stats-grid">
-                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Entities)</div><div class="stat-key">Entities</div></div>
-                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Meshes)</div><div class="stat-key">Meshes</div></div>
-                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Vertices)</div><div class="stat-key">Verts</div></div>
-                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Triangles)</div><div class="stat-key">Tris</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Entities)</div><div class="stat-key">@T.StatEntities</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Meshes)</div><div class="stat-key">@T.StatMeshes</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Vertices)</div><div class="stat-key">@T.StatVerts</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Triangles)</div><div class="stat-key">@T.StatTris</div></div>
             </div>
         }
 
@@ -45,7 +46,7 @@
         {
             <div class="filter-wrap">
                 <div class="filter-header" @onclick="() => _filterOpen = !_filterOpen">
-                    <span class="filter-header-label">Types &amp; Colors</span>
+                    <span class="filter-header-label">@T.FilterTitle</span>
                     <div class="filter-header-right">
                         <span class="filter-count-badge">@_types.Count</span>
                         <span class="filter-chevron @(_filterOpen ? "open" : "")">▾</span>
@@ -53,15 +54,19 @@
                 </div>
                 <div class="filter-body" style="display:@(_filterOpen ? "" : "none")">
                     <div class="filter-controls">
-                        <button class="filter-ctrl-btn" @onclick="ShowAllTypes">👁 All</button>
-                        <button class="filter-ctrl-btn" @onclick="HideAllTypes">🚫 None</button>
-                        <button class="filter-ctrl-btn" @onclick="ResetColors">↺ Colors</button>
+                        <button class="filter-ctrl-btn" @onclick="ShowAllTypes">👁 @T.FilterAll</button>
+                        <button class="filter-ctrl-btn" @onclick="HideAllTypes">🚫 @T.FilterNone</button>
+                        <button class="filter-ctrl-btn" @onclick="ResetColors">↺ @T.FilterResetClr</button>
                     </div>
                     @foreach (var t in _types)
                     {
                         <div class="filter-row @(!t.Visible ? "hidden-type" : "")">
-                            <button class="vis-btn @(!t.Visible ? "hidden" : "")" title="Toggle visibility" @onclick="() => ToggleType(t)">@(t.Visible ? "👁" : "🚫")</button>
-                            <div class="color-swatch-wrap" style="background:@t.ColorHex" title="Change color">
+                            <button class="vis-btn @(!t.Visible ? "hidden" : "")"
+                                    title="@T.FilterToggle"
+                                    @onclick="() => ToggleType(t)">
+                                @(t.Visible ? "👁" : "🚫")
+                            </button>
+                            <div class="color-swatch-wrap" style="background:@t.ColorHex" title="@T.FilterResetClr">
                                 <input type="color" value="@t.ColorHex" @onchange="e => OnColorChanged(t, e)" />
                             </div>
                             <span class="type-label" title="@t.Key">@t.Label</span>
@@ -78,7 +83,7 @@
         }
 
         <div class="log-wrap">
-            <div class="log-header">Console</div>
+            <div class="log-header">@T.ConsolePanelTitle</div>
             <div id="log">
                 @foreach (var entry in _log)
                 {
@@ -91,48 +96,47 @@
     <!-- ── 3D VIEWPORT ── -->
     <section class="viewport" id="viewport">
         <p style="margin-left:10px">
-            This page allows 3D visualization of BIM files in <b>.IFC format (Autodesk Revit)</b> or <b>.DXF format (AutoCAD)</b>.
-            The underlying algorithm converts these proprietary formats into a <b>JSON format</b>, which can be saved and reused,
-            thereby optimizing 3D rendering. The JSON format used is inspired by specifications provided by buildingSMART
-            (<a href="https://www.buildingsmart.org" target="_blank">https://www.buildingsmart.org</a>), an international
-            non-profit organization :
-            <a href="https://github.com/buildingsmart-community/ifcJSON/tree/main/Samples/IFC_4.0/BuildingSMARTSpec" target="_blank">
-                https://github.com/buildingsmart-community/ifcJSON/tree/main/Samples/IFC_4.0/BuildingSMARTSpec
-            </a><br /><br />
-            Feel free to send us feedback about this page at <a href="mailto:info@digitalenergyaudit.com">info@digitalenergyaudit.com</a>.
-            Your input will help us improve our next-generation, <b>cross-platform collaborative BIM solution</b>
-            (Windows, Linux, macOS), scheduled for release by the end of August 2026.
+            @((MarkupString)T.DescPara)
+            <br /><br />
+            @((MarkupString)T.DescFeedback)
         </p>
+
         <canvas id="canvas"></canvas>
 
         <div class="empty-state @(_hasModel ? "hidden" : "")">
             <div class="empty-card">
                 <div class="empty-icon">🏗</div>
-                <div class="empty-title">No model loaded</div>
+                <div class="empty-title">@T.EmptyTitle</div>
             </div>
         </div>
 
         <div class="pivot-hint" id="pivotHint"></div>
         <div class="pivot-circle" id="pivotCircle"></div>
 
-        <button class="fpv-btn @(_hasModel ? "shown" : "") @(_fpvActive ? "active" : "")" title="Look-around mode (L)" @onclick="ToggleFpv">
-            <span class="fpv-dot"></span>Look-around
+        <button class="fpv-btn @(_hasModel ? "shown" : "") @(_fpvActive ? "active" : "")"
+                title="@T.FpvBtnLabel"
+                @onclick="ToggleFpv">
+            <span class="fpv-dot"></span>@T.FpvBtnLabel
         </button>
 
         <div class="nav-help @(_navHelpVisible ? "visible" : "")">
-            <div class="nav-help-title">Navigation shortcuts</div>
-            <div class="nav-help-section">Mouse</div>
-            <div><span class="nav-k">LMB</span> Orbit &nbsp; <span class="nav-k">RMB</span> Pan &nbsp; <span class="nav-k">SCR</span> Zoom</div>
-            <div><span class="nav-k">DBL</span> Focus orbit on clicked point</div>
-            <div class="nav-help-section">Keyboard — move</div>
-            <div><span class="nav-k">W</span><span class="nav-k">S</span> Forward / back &nbsp; <span class="nav-k">A</span><span class="nav-k">D</span> Strafe</div>
-            <div><span class="nav-k">Q</span><span class="nav-k">E</span> Down / up &nbsp; <span class="nav-k">Shift</span> Fast</div>
-            <div class="nav-help-section">Keyboard — views</div>
-            <div><span class="nav-k">T</span> Top &nbsp; <span class="nav-k">F</span> Front &nbsp; <span class="nav-k">R</span> Side</div>
-            <div><span class="nav-k">Home</span> Fit all &nbsp; <span class="nav-k">L</span> Look-around</div>
-            <div><span class="nav-k">H</span> Toggle this panel</div>
+            <div class="nav-help-title">@T.NavTitle</div>
+            <div class="nav-help-section">@T.NavMouse</div>
+            <div><span class="nav-k">LMB</span> @T.NavOrbit &nbsp; <span class="nav-k">RMB</span> @T.NavPan &nbsp; <span class="nav-k">SCR</span> @T.NavZoom</div>
+            <div><span class="nav-k">DBL</span> @T.NavDblClick</div>
+            <div class="nav-help-section">@T.NavKeyMove</div>
+            <div><span class="nav-k">W</span><span class="nav-k">S</span> @T.NavFwd &nbsp; <span class="nav-k">A</span><span class="nav-k">D</span> @T.NavStrafe</div>
+            <div><span class="nav-k">Q</span><span class="nav-k">E</span> @T.NavUpDown &nbsp; <span class="nav-k">Shift</span> @T.NavFast</div>
+            <div class="nav-help-section">@T.NavKeyViews</div>
+            <div><span class="nav-k">T</span> @T.NavTop &nbsp; <span class="nav-k">F</span> @T.NavFront &nbsp; <span class="nav-k">R</span> @T.NavSide</div>
+            <div><span class="nav-k">Home</span> @T.NavFitAll &nbsp; <span class="nav-k">L</span> @T.NavLook</div>
+            <div><span class="nav-k">H</span> @T.NavToggleHelp</div>
         </div>
-        <button class="nav-help-toggle @(_hasModel ? "shown" : "")" @onclick="() => _navHelpVisible = !_navHelpVisible">⌨ H · Controls</button>
+
+        <button class="nav-help-toggle @(_hasModel ? "shown" : "")"
+                @onclick="() => _navHelpVisible = !_navHelpVisible">
+            @T.NavHelpToggleBtn
+        </button>
 
         @if (_detail is not null)
         {
@@ -142,7 +146,7 @@
                         <div class="detail-popup-title">@_detail.Title</div>
                         <div class="detail-popup-type">@_detail.TypeLabel</div>
                     </div>
-                    <button class="detail-popup-close" title="Close" @onclick="() => _detail = null">✕</button>
+                    <button class="detail-popup-close" title="@T.DetailClose" @onclick="() => _detail = null">✕</button>
                 </div>
                 <div class="detail-popup-body">
                     @foreach (var row in _detail.Rows)
@@ -160,7 +164,7 @@
 </div>
 
 <div class="mobile-message">
-    ⚠️ This content is not available on mobile devices. Please open this page on a desktop computer.
+    @T.MobileMessage
 </div>
 
 @code {
@@ -171,7 +175,7 @@
         ["dxf"] = "/convert-dxf",
         ["json"] = "/upload-json",
     };
-    private const long MaxUploadBytes = 100 * 1024 * 1024; // 100 MB
+    private const long MaxUploadBytes = 100 * 1024 * 1024;
 
     private DotNetObjectReference<Viewer>? _selfRef;
     private bool _jsReady;
@@ -182,13 +186,23 @@
     private bool _fpvActive;
     private bool _navHelpVisible;
     private bool _filterOpen = true;
-    private string _statusText = "IDLE";
+
+    private string CurrentLang = "en";
+    private BimTranslations T = TranslationDictionary.Get("en");
+
+    private string _statusText = "";
     private string _statusClass = "";
     private string? _error;
     private ModelStats? _stats;
     private List<TypeInfo> _types = new();
     private ElementDetail? _detail;
     private readonly List<LogEntry> _log = new();
+
+    protected override void OnInitialized()
+    {
+        T = TranslationDictionary.Get(CurrentLang);
+        SetStatus("IDLE", "");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -212,13 +226,13 @@
         var ext = System.IO.Path.GetExtension(file.Name).TrimStart('.').ToLowerInvariant();
         if (!AllowedExt.Contains(ext))
         {
-            AddLog("Rejected: unsupported type '." + ext + "'", "err");
-            _error = "Unsupported: ." + ext;
+            AddLog($"{T.LogRejected}: '.{ext}'", "err");
+            _error = $"{T.LogUnsupported}: .{ext}";
             return;
         }
 
-        AddLog("[" + ext.ToUpperInvariant() + "] Uploading: " + file.Name, "info");
-        SetStatus("UPLOADING…", "loading");
+        AddLog($"[{ext.ToUpperInvariant()}] {T.LogUploading}: {file.Name}", "info");
+        SetStatus("UPLOADING", "loading");
         _loading = true;
         _error = null;
         StateHasChanged();
@@ -237,15 +251,15 @@
                 throw new Exception($"Backend {(int)response.StatusCode}: {text}");
             }
 
-            AddLog("Upload OK – parsing…", "ok");
-            SetStatus("PARSING…", "loading");
+            AddLog(T.LogUploadOk, "ok");
+            SetStatus("PARSING", "loading");
 
             var json = await response.Content.ReadAsStringAsync();
             await JS.InvokeVoidAsync("bimViewer.loadModel", json);
         }
         catch (Exception ex)
         {
-            AddLog("Error: " + ex.Message, "err");
+            AddLog($"{T.LogError}: {ex.Message}", "err");
             SetStatus("ERROR", "error");
             _error = ex.Message;
         }
@@ -311,9 +325,17 @@
 
     private async Task DownloadJson() => await JS.InvokeVoidAsync("bimViewer.downloadJson", "cadjson-export.json");
 
-    private void SetStatus(string text, string cls)
+    private void SetStatus(string key, string cls)
     {
-        _statusText = text;
+        _statusText = key switch
+        {
+            "IDLE" => T.StatusIdle,
+            "UPLOADING" => T.StatusUploading,
+            "PARSING" => T.StatusParsing,
+            "READY" => T.StatusReady,
+            "ERROR" => T.StatusError,
+            _ => key
+        };
         _statusClass = cls;
     }
 
@@ -326,8 +348,6 @@
     private static string Fmt(int n) => n >= 1_000_000 ? (n / 1_000_000.0).ToString("0.0") + "M"
         : n >= 1000 ? (n / 1000.0).ToString("0.0") + "k"
         : n.ToString();
-
-    /* ── Callbacks invoked from JS ── */
 
     [JSInvokable]
     public void OnLog(string msg, string level) => AddLog(msg, level);
@@ -380,7 +400,7 @@
         _selfRef?.Dispose();
         if (_jsReady)
         {
-            try { await JS.InvokeVoidAsync("bimViewer.resetAll"); } catch { /* circuit may already be gone */ }
+            try { await JS.InvokeVoidAsync("bimViewer.resetAll"); } catch { }
         }
     }
 
