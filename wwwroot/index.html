@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BIM · CAD Viewer</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/app.css" />
+
+    <!-- Same three.js build the original page used -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="boot-loading">Loading BIM Viewer…</div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Interop module: must load before blazor.webassembly.js so window.bimViewer exists -->
+    <script src="js/bimViewer.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+</html>

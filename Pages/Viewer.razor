@@ -1,0 +1,388 @@
+@page "/"
+@inject HttpClient Http
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="page">
+
+    <!-- ── LEFT PANEL ── -->
+    <aside class="panel">
+        <div class="drop-area @(_dragOver ? "drag-over" : "")"
+             @ondragover="OnDragOver" @ondragover:preventDefault="true"
+             @ondragleave="OnDragLeave">
+            <InputFile OnChange="OnFileSelected" accept=".ifc,.dxf,.json,application/octet-stream,application/json" />
+            <div class="drop-icon">⬡</div>
+            <div class="drop-title">Drop a CAD/BIM file or click to upload</div>
+            <div class="drop-sub">Sends to backend · renders real geometry</div>
+            <div class="drop-formats">
+                <span class="drop-fmt">.IFC</span>
+                <span class="drop-fmt">.DXF</span>
+                <span class="drop-fmt">.JSON</span>
+            </div>
+        </div>
+
+        <div class="progress-wrap @(_loading ? "active" : "")"><div class="progress-bar"></div></div>
+
+        <div class="btn-row">
+            <button class="btn" disabled="@(!_hasModel)" @onclick="DownloadJson">↓ JSON</button>
+            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="Fit">⊡ Fit</button>
+            <button class="btn secondary" disabled="@(!_hasModel)" @onclick="ResetAll">✕</button>
+        </div>
+
+        <div class="status-badge @_statusClass">@_statusText</div>
+
+        @if (_hasModel && _stats is not null)
+        {
+            <div class="stats-grid">
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Entities)</div><div class="stat-key">Entities</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Meshes)</div><div class="stat-key">Meshes</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Vertices)</div><div class="stat-key">Verts</div></div>
+                <div class="stat-cell"><div class="stat-value">@Fmt(_stats.Triangles)</div><div class="stat-key">Tris</div></div>
+            </div>
+        }
+
+        @if (_types.Count > 0)
+        {
+            <div class="filter-wrap">
+                <div class="filter-header" @onclick="() => _filterOpen = !_filterOpen">
+                    <span class="filter-header-label">Types &amp; Colors</span>
+                    <div class="filter-header-right">
+                        <span class="filter-count-badge">@_types.Count</span>
+                        <span class="filter-chevron @(_filterOpen ? "open" : "")">▾</span>
+                    </div>
+                </div>
+                <div class="filter-body" style="display:@(_filterOpen ? "" : "none")">
+                    <div class="filter-controls">
+                        <button class="filter-ctrl-btn" @onclick="ShowAllTypes">👁 All</button>
+                        <button class="filter-ctrl-btn" @onclick="HideAllTypes">🚫 None</button>
+                        <button class="filter-ctrl-btn" @onclick="ResetColors">↺ Colors</button>
+                    </div>
+                    @foreach (var t in _types)
+                    {
+                        <div class="filter-row @(!t.Visible ? "hidden-type" : "")">
+                            <button class="vis-btn @(!t.Visible ? "hidden" : "")" title="Toggle visibility" @onclick="() => ToggleType(t)">@(t.Visible ? "👁" : "🚫")</button>
+                            <div class="color-swatch-wrap" style="background:@t.ColorHex" title="Change color">
+                                <input type="color" value="@t.ColorHex" @onchange="e => OnColorChanged(t, e)" />
+                            </div>
+                            <span class="type-label" title="@t.Key">@t.Label</span>
+                            <span class="type-count-badge">@t.Count</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="err-banner visible">@_error</div>
+        }
+
+        <div class="log-wrap">
+            <div class="log-header">Console</div>
+            <div id="log">
+                @foreach (var entry in _log)
+                {
+                    <div class="@entry.CssClass">@entry.Text</div>
+                }
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── 3D VIEWPORT ── -->
+    <section class="viewport" id="viewport">
+        <p style="margin-left:10px">
+            This page allows 3D visualization of BIM files in <b>.IFC format (Autodesk Revit)</b> or <b>.DXF format (AutoCAD)</b>.
+            The underlying algorithm converts these proprietary formats into a <b>JSON format</b>, which can be saved and reused,
+            thereby optimizing 3D rendering. The JSON format used is inspired by specifications provided by buildingSMART
+            (<a href="https://www.buildingsmart.org" target="_blank">https://www.buildingsmart.org</a>), an international
+            non-profit organization :
+            <a href="https://github.com/buildingsmart-community/ifcJSON/tree/main/Samples/IFC_4.0/BuildingSMARTSpec" target="_blank">
+                https://github.com/buildingsmart-community/ifcJSON/tree/main/Samples/IFC_4.0/BuildingSMARTSpec
+            </a><br /><br />
+            Feel free to send us feedback about this page at <a href="mailto:info@digitalenergyaudit.com">info@digitalenergyaudit.com</a>.
+            Your input will help us improve our next-generation, <b>cross-platform collaborative BIM solution</b>
+            (Windows, Linux, macOS), scheduled for release by the end of August 2026.
+        </p>
+        <canvas id="canvas"></canvas>
+
+        <div class="empty-state @(_hasModel ? "hidden" : "")">
+            <div class="empty-card">
+                <div class="empty-icon">🏗</div>
+                <div class="empty-title">No model loaded</div>
+            </div>
+        </div>
+
+        <div class="pivot-hint" id="pivotHint"></div>
+        <div class="pivot-circle" id="pivotCircle"></div>
+
+        <button class="fpv-btn @(_hasModel ? "shown" : "") @(_fpvActive ? "active" : "")" title="Look-around mode (L)" @onclick="ToggleFpv">
+            <span class="fpv-dot"></span>Look-around
+        </button>
+
+        <div class="nav-help @(_navHelpVisible ? "visible" : "")">
+            <div class="nav-help-title">Navigation shortcuts</div>
+            <div class="nav-help-section">Mouse</div>
+            <div><span class="nav-k">LMB</span> Orbit &nbsp; <span class="nav-k">RMB</span> Pan &nbsp; <span class="nav-k">SCR</span> Zoom</div>
+            <div><span class="nav-k">DBL</span> Focus orbit on clicked point</div>
+            <div class="nav-help-section">Keyboard — move</div>
+            <div><span class="nav-k">W</span><span class="nav-k">S</span> Forward / back &nbsp; <span class="nav-k">A</span><span class="nav-k">D</span> Strafe</div>
+            <div><span class="nav-k">Q</span><span class="nav-k">E</span> Down / up &nbsp; <span class="nav-k">Shift</span> Fast</div>
+            <div class="nav-help-section">Keyboard — views</div>
+            <div><span class="nav-k">T</span> Top &nbsp; <span class="nav-k">F</span> Front &nbsp; <span class="nav-k">R</span> Side</div>
+            <div><span class="nav-k">Home</span> Fit all &nbsp; <span class="nav-k">L</span> Look-around</div>
+            <div><span class="nav-k">H</span> Toggle this panel</div>
+        </div>
+        <button class="nav-help-toggle @(_hasModel ? "shown" : "")" @onclick="() => _navHelpVisible = !_navHelpVisible">⌨ H · Controls</button>
+
+        @if (_detail is not null)
+        {
+            <div class="detail-popup visible">
+                <div class="detail-popup-header">
+                    <div>
+                        <div class="detail-popup-title">@_detail.Title</div>
+                        <div class="detail-popup-type">@_detail.TypeLabel</div>
+                    </div>
+                    <button class="detail-popup-close" title="Close" @onclick="() => _detail = null">✕</button>
+                </div>
+                <div class="detail-popup-body">
+                    @foreach (var row in _detail.Rows)
+                    {
+                        <div class="detail-row">
+                            <div class="detail-key">@row.Key</div>
+                            <div class="detail-val">@row.Value</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </section>
+
+</div>
+
+<div class="mobile-message">
+    ⚠️ This content is not available on mobile devices. Please open this page on a desktop computer.
+</div>
+
+@code {
+    private static readonly HashSet<string> AllowedExt = new() { "ifc", "dxf", "json" };
+    private static readonly Dictionary<string, string> Endpoints = new()
+    {
+        ["ifc"] = "/convert-ifc",
+        ["dxf"] = "/convert-dxf",
+        ["json"] = "/upload-json",
+    };
+    private const long MaxUploadBytes = 100 * 1024 * 1024; // 100 MB
+
+    private DotNetObjectReference<Viewer>? _selfRef;
+    private bool _jsReady;
+
+    private bool _dragOver;
+    private bool _loading;
+    private bool _hasModel;
+    private bool _fpvActive;
+    private bool _navHelpVisible;
+    private bool _filterOpen = true;
+    private string _statusText = "IDLE";
+    private string _statusClass = "";
+    private string? _error;
+    private ModelStats? _stats;
+    private List<TypeInfo> _types = new();
+    private ElementDetail? _detail;
+    private readonly List<LogEntry> _log = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("bimViewer.init", "canvas", "viewport", "pivotHint", "pivotCircle", _selfRef);
+            _jsReady = true;
+        }
+    }
+
+    private void OnDragOver() => _dragOver = true;
+    private void OnDragLeave() => _dragOver = false;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _dragOver = false;
+        var file = e.File;
+        if (file is null) return;
+
+        var ext = System.IO.Path.GetExtension(file.Name).TrimStart('.').ToLowerInvariant();
+        if (!AllowedExt.Contains(ext))
+        {
+            AddLog("Rejected: unsupported type '." + ext + "'", "err");
+            _error = "Unsupported: ." + ext;
+            return;
+        }
+
+        AddLog("[" + ext.ToUpperInvariant() + "] Uploading: " + file.Name, "info");
+        SetStatus("UPLOADING…", "loading");
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream(MaxUploadBytes);
+            using var streamContent = new StreamContent(stream);
+            content.Add(streamContent, "file", file.Name);
+
+            var response = await Http.PostAsync(Endpoints[ext], content);
+            if (!response.IsSuccessStatusCode)
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Backend {(int)response.StatusCode}: {text}");
+            }
+
+            AddLog("Upload OK – parsing…", "ok");
+            SetStatus("PARSING…", "loading");
+
+            var json = await response.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("bimViewer.loadModel", json);
+        }
+        catch (Exception ex)
+        {
+            AddLog("Error: " + ex.Message, "err");
+            SetStatus("ERROR", "error");
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Fit() => await JS.InvokeVoidAsync("bimViewer.fitCamera");
+
+    private async Task ResetAll()
+    {
+        await JS.InvokeVoidAsync("bimViewer.resetAll");
+        _hasModel = false;
+        _stats = null;
+        _types.Clear();
+        _detail = null;
+        _log.Clear();
+        _error = null;
+        _fpvActive = false;
+        _navHelpVisible = false;
+        SetStatus("IDLE", "");
+    }
+
+    private async Task ToggleFpv()
+    {
+        await JS.InvokeVoidAsync("bimViewer.setFPV", !_fpvActive);
+    }
+
+    private async Task ToggleType(TypeInfo t)
+    {
+        var visible = await JS.InvokeAsync<bool>("bimViewer.toggleTypeVisibility", t.Key);
+        t.Visible = visible;
+    }
+
+    private async Task ShowAllTypes()
+    {
+        await JS.InvokeVoidAsync("bimViewer.setAllVisible", true);
+        foreach (var t in _types) t.Visible = true;
+    }
+
+    private async Task HideAllTypes()
+    {
+        await JS.InvokeVoidAsync("bimViewer.setAllVisible", false);
+        foreach (var t in _types) t.Visible = false;
+    }
+
+    private async Task OnColorChanged(TypeInfo t, ChangeEventArgs e)
+    {
+        var hex = e.Value?.ToString() ?? t.ColorHex;
+        t.ColorHex = hex;
+        await JS.InvokeVoidAsync("bimViewer.setTypeColor", t.Key, hex);
+    }
+
+    private async Task ResetColors()
+    {
+        var updated = await JS.InvokeAsync<Dictionary<string, string>>("bimViewer.resetColors");
+        foreach (var t in _types)
+            if (updated.TryGetValue(t.Key, out var hex)) t.ColorHex = hex;
+    }
+
+    private async Task DownloadJson() => await JS.InvokeVoidAsync("bimViewer.downloadJson", "cadjson-export.json");
+
+    private void SetStatus(string text, string cls)
+    {
+        _statusText = text;
+        _statusClass = cls;
+    }
+
+    private void AddLog(string msg, string cssClass)
+    {
+        _log.Add(new LogEntry(msg, cssClass));
+        StateHasChanged();
+    }
+
+    private static string Fmt(int n) => n >= 1_000_000 ? (n / 1_000_000.0).ToString("0.0") + "M"
+        : n >= 1000 ? (n / 1000.0).ToString("0.0") + "k"
+        : n.ToString();
+
+    /* ── Callbacks invoked from JS ── */
+
+    [JSInvokable]
+    public void OnLog(string msg, string level) => AddLog(msg, level);
+
+    [JSInvokable]
+    public void OnStats(ModelStats stats)
+    {
+        _stats = stats;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnTypesBuilt(List<TypeInfo> types)
+    {
+        _types = types;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnModelLoaded()
+    {
+        _hasModel = true;
+        SetStatus("READY", "ready");
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnElementSelected(ElementDetail detail)
+    {
+        _detail = detail;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnElementDeselected()
+    {
+        _detail = null;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnFpvChanged(bool active)
+    {
+        _fpvActive = active;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _selfRef?.Dispose();
+        if (_jsReady)
+        {
+            try { await JS.InvokeVoidAsync("bimViewer.resetAll"); } catch { /* circuit may already be gone */ }
+        }
+    }
+
+    private record LogEntry(string Text, string CssClass);
+}
