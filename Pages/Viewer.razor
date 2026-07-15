@@ -1,5 +1,7 @@
 @page "/"
 @using BimViewer.Localization
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager Nav
 @inject HttpClient Http
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -187,6 +189,8 @@
     private bool _navHelpVisible;
     private bool _filterOpen = true;
 
+    [Parameter] public string? lang { get; set; }
+
     private string CurrentLang = "en";
     private BimTranslations T = TranslationDictionary.Get("en");
 
@@ -198,10 +202,12 @@
     private ElementDetail? _detail;
     private readonly List<LogEntry> _log = new();
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
+        CurrentLang = string.IsNullOrWhiteSpace(lang) ? "en" : lang.Trim().ToLowerInvariant();
         T = TranslationDictionary.Get(CurrentLang);
-        SetStatus("IDLE", "");
+        if (string.IsNullOrWhiteSpace(_statusText))
+            SetStatus("IDLE", "");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
