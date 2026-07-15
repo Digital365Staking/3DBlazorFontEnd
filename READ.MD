@@ -1,0 +1,3 @@
+his page allows 3D visualization of BIM files in .IFC format (Autodesk Revit) or .DXF format (AutoCAD). The underlying algorithm converts these proprietary formats into a JSON format, which can be saved and reused, thereby optimizing 3D rendering. The JSON format used is inspired by specifications provided by buildingSMART (https://www.buildingsmart.org), an international non-profit organization : https://github.com/buildingsmart-community/ifcJSON/tree/main/Samples/IFC_4.0/BuildingSMARTSpec
+
+Feel free to send us feedback about this page at info@digitalenergyaudit.com. Your input will help us improve our next-generation, cross-platform collaborative BIM solution (Windows, Linux, macOS), scheduled for release by the end of August 2026.
