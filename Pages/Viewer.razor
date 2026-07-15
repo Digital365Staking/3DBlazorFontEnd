@@ -1,5 +1,6 @@
 @page "/"
 @using BimViewer.Localization
+@using Microsoft.AspNetCore.Components
 @inject NavigationManager Nav
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -188,7 +189,13 @@
     private bool _navHelpVisible;
     private bool _filterOpen = true;
 
-    [Parameter] public string? lang { get; set; }
+    // NOTE: [SupplyParameterFromQuery] is required in addition to [Parameter]
+    // for Blazor to bind this from the URL query string (?lang=fr).
+    // [Parameter] alone only binds route parameters (e.g. @page "/{lang}"),
+    // which this page does not use since it's routed at "/".
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? lang { get; set; }
 
     private string CurrentLang = "en";
     private BimTranslations T = TranslationDictionary.Get("en");
