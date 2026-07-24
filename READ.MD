@@ -25,7 +25,7 @@ Feel free to send us feedback about this page at info@digitalenergyaudit.com. Yo
         As the application grows, these limitations become increasingly apparent.
     </p>
 
-<div class="highlight">
+
 
 <p>
 Microsoft 365 and SharePoint provide a robust foundation for document management,
@@ -40,9 +40,9 @@ and a far more scalable architecture than solutions built directly
 as SharePoint Web Parts.
 </p>
 
-</div>
 
-<div class="conclusion">
+
+
 
 <p>
 The proposed approach is therefore not to replace SharePoint,
@@ -56,7 +56,7 @@ We would be delighted to discuss this vision with you and explore
 the migration strategies best suited to your organization's needs.
 </p>
 
-</div>
+
 
 <div class="contact">
 
