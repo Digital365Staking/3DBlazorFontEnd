@@ -7,10 +7,7 @@ Feel free to send us feedback about this page at info@digitalenergyaudit.com. Yo
 
 <h4>Why Avoid SharePoint Web Parts for Business Applications?</h4>
 
-<div class="warning">
-    <h2>Key Limitations</h2>
-
-    <p>
+<p>
         SharePoint Web Parts are an excellent way to extend SharePoint,
         but they quickly become limiting when they are expected to support
         significant business logic.
@@ -27,7 +24,6 @@ Feel free to send us feedback about this page at info@digitalenergyaudit.com. Yo
     <p>
         As the application grows, these limitations become increasingly apparent.
     </p>
-</div>
 
 <div class="highlight">
 
