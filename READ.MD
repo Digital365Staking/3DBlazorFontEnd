@@ -48,7 +48,7 @@ as SharePoint Web Parts.
 The proposed approach is therefore not to replace SharePoint,
 but to fully leverage its strengths as a document management
 and collaboration platform while delegating business functionality
-to Blazor applications that integrate seamlessly with the Microsoft 365 ecosystem.
+to <strong>Blazor</strong> applications that integrate seamlessly with the Microsoft 365 ecosystem.
 </p>
 
 <p>
