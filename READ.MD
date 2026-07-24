@@ -3,27 +3,27 @@
 Feel free to send us feedback about this page at info@digitalenergyaudit.com. Your input will help us improve our next-generation, cross-platform collaborative BIM solution (Windows, Linux, macOS), scheduled for release by the end of August 2026.
 </p>
 
-<b>/* Proposal for Enhancing the Application Architecture of SharePoint Web Applications */</b>
+<h4>/* Proposal for Enhancing the Application Architecture of SharePoint Web Applications */</h4>
 
 <h4>Why Avoid SharePoint Web Parts for Business Applications?</h4>
 
 <p>
-        SharePoint Web Parts are an excellent way to extend SharePoint,
-        but they quickly become limiting when they are expected to support
-        significant business logic.
-    </p>
+SharePoint Web Parts are an excellent way to extend SharePoint,
+but they quickly become limiting when they are expected to support
+significant business logic.
+</p>
 
-    <ul>
-        <li>Dependency on the SharePoint lifecycle.</li>
-        <li>Limited user experience.</li>
-        <li>Tightly coupled architecture.</li>
-        <li>More complex deployment processes.</li>
-        <li>Limited reusability outside the SharePoint environment.</li>
-    </ul>
+<ul>
+<li>Dependency on the SharePoint lifecycle.</li>
+<li>Limited user experience.</li>
+<li>Tightly coupled architecture.</li>
+<li>More complex deployment processes.</li>
+<li>Limited reusability outside the SharePoint environment.</li>
+</ul>
 
-    <p>
-        As the application grows, these limitations become increasingly apparent.
-    </p>
+<p>
+As the application grows, these limitations become increasingly apparent.
+</p>
 
 
 
