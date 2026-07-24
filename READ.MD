@@ -5,7 +5,7 @@ Feel free to send us feedback about this page at info@digitalenergyaudit.com. Yo
 
 <h4>/* Proposal for Enhancing the Application Architecture of SharePoint Web Applications */</h4>
 
-<h4>Why Avoid SharePoint Web Parts for Business Applications?</h4>
+<h4>Why Avoid SharePoint Web Parts for Business Applications ?</h4>
 
 <p>
 SharePoint Web Parts are an excellent way to extend SharePoint,
