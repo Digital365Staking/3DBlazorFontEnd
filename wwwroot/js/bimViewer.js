@@ -541,15 +541,14 @@ window.bimViewer = (function () {
     return updated;
   }
 
-  function downloadJson(filename, jsonText) {
-    const text = (typeof jsonText === "string" && jsonText.length) ? jsonText : rawJson;
-    if (!text) {
+  function downloadJson(filename) {
+    if (!rawJson) {
       log("No JSON available for download.", "warn");
       return false;
     }
   
     const fileName = (filename && filename.trim()) ? filename.trim() : "cadjson-export.json";
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const blob = new Blob([rawJson], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
   
     try {
