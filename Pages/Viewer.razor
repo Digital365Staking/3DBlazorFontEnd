@@ -337,35 +337,7 @@
 
     private async Task DownloadJson()
     {
-        if (!_hasModel)
-        {
-            AddLog("No model to export", "err");
-            return;
-        }
-    
-        try
-        {
-            // Replace this with your actual export payload
-            var payload = new
-            {
-                status = _statusText,
-                stats = _stats,
-                types = _types,
-                detail = _detail
-            };
-    
-            var json = System.Text.Json.JsonSerializer.Serialize(
-                payload,
-                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-    
-            await JS.InvokeVoidAsync("bimViewer.downloadJson", "cadjson-export.json", json);
-            AddLog("JSON export started", "ok");
-        }
-        catch (Exception ex)
-        {
-            AddLog($"{T.LogError}: {ex.Message}", "err");
-            _error = ex.Message;
-        }
+        await JS.InvokeVoidAsync("bimViewer.downloadJson", "cadjson-export.json");
     }
 
     private void SetStatus(string key, string cls)
