@@ -541,12 +541,29 @@ window.bimViewer = (function () {
     return updated;
   }
 
-  function downloadJson(filename) {
-    if (!rawJson) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([rawJson], { type: "application/json" }));
-    a.download = filename || "cadjson-export.json";
-    a.click();
+  function downloadJson(filename, jsonText) {
+    const text = (typeof jsonText === "string" && jsonText.length) ? jsonText : rawJson;
+    if (!text) {
+      log("No JSON available for download.", "warn");
+      return false;
+    }
+  
+    const fileName = (filename && filename.trim()) ? filename.trim() : "cadjson-export.json";
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+  
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return true;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   }
 
   return {
