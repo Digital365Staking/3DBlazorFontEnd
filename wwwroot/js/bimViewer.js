@@ -227,7 +227,11 @@ window.bimViewer = (function () {
     }
     filterState = {};
     selectedMesh = null;
-    rawJson = null;
+    // NOTE: rawJson is intentionally NOT cleared here. clearModel() is called
+    // from inside buildScene() (right after loadModel() has just set rawJson
+    // for the model about to be built), so clearing it here wiped out the
+    // JSON needed by downloadJson() on every single load. rawJson is only
+    // ever cleared explicitly, in resetAll().
   }
 
   function labelFor(key) {
@@ -498,6 +502,7 @@ window.bimViewer = (function () {
 
   function resetAll() {
     clearModel();
+    rawJson = null;
     if (grid) grid.position.y = 0;
     setFPV(false);
   }
