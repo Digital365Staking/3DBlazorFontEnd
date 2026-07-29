@@ -9,9 +9,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // Points at the same FastAPI backend the original HTML page used.
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("ifcjsonbackend-production.up.railway.app")
+    BaseAddress = new Uri("https://ifcjsonbackend-production.up.railway.app")
 });
-
-// https://ifcjsonbackend-production.up.railway.app
 
 await builder.Build().RunAsync();
