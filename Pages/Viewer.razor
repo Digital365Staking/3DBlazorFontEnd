@@ -198,7 +198,7 @@
     public string? lang { get; set; }
 
     private string CurrentLang = "en";
-    private BimTranslations T = TranslationDictionary.Get("en");
+    private BimTranslations T = BimTranslations.TranslationDictionary.Get("en");
 
     private string _statusText = "";
     private string _statusClass = "";
@@ -211,7 +211,7 @@
     protected override void OnParametersSet()
     {
         CurrentLang = string.IsNullOrWhiteSpace(lang) ? "en" : lang.Trim().ToLowerInvariant();
-        T = TranslationDictionary.Get(CurrentLang);
+        T = BimTranslations.TranslationDictionary.Get(CurrentLang);
         if (string.IsNullOrWhiteSpace(_statusText))
             SetStatus("IDLE", "");
     }
