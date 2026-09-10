@@ -288,7 +288,7 @@ public sealed record BimTranslations
                 NavHelpToggleBtn = "⌨ H · Controles",
                 FpvBtnLabel = "Mirar alrededor",
                 DetailClose = "Cerrar",
-                DescPara = "Esta página permite la visualización 3D de archivos BIM en formato .IFC (Autodesk Revit) o .DXF (AutoCAD). El algoritmo convierte estos formatos propietarios a un formato JSON, que puede guardarse y reutilizarse, optimizando así el renderizado 3D. El formato JSON utilizado se inspira en las especificaciones de buildingSMART (<a href='https://github.com/buildingsmart-community/ifcJSON/' target='_blank'>https://www.buildingsmart.org</a>), una organización internacional sin ánimo de lucro",
+                DescPara = "Esta página permite la visualización 3D de archivos BIM en formato .IFC (Autodesk Revit) o .DXF (AutoCAD). El algoritmo convierte estos formatos propietarios a un formato JSON, que puede guardarse y reutilizarse, optimizando así el renderizado 3D. El formato JSON utilizado se inspira en las especificaciones de buildingSMART (<a href='https://github.com/buildingsmart-community/ifcJSON/' target='_blank'>https://www.buildingsmart.org</a>), una organización internacional sin ánimo de lucro.",
                 DescFeedback = "Envíenos sus comentarios sobre esta página a <a href='mailTo:info@digitalenergyaudit.com'>info@digitalenergyaudit.com</a>. Sus aportaciones nos ayudarán a mejorar nuestra solución BIM colaborativa multiplataforma de próxima generación (Windows, Linux, macOS), prevista para finales de septiembre de 2026.",
                 MobileMessage = "⚠️ Este contenido no está disponible en dispositivos móviles. Abra esta página en un ordenador de escritorio.",
                 LogRejected = "Rechazado: tipo no compatible",
