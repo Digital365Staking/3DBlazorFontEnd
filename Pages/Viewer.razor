@@ -13,14 +13,15 @@
         <div class="drop-area @(_dragOver ? "drag-over" : "")"
              @ondragover="OnDragOver" @ondragover:preventDefault="true"
              @ondragleave="OnDragLeave">
-            <InputFile OnChange="OnFileSelected" accept=".ifc,.dxf,.json,application/octet-stream,application/json" />
+            <InputFile OnChange="OnFileSelected" accept="@AcceptAttribute" />
             <div class="drop-icon">⬡</div>
             <div class="drop-title">@T.DropTitle</div>
             <div class="drop-sub">@T.DropSub</div>
             <div class="drop-formats">
-                <span class="drop-fmt">.IFC</span>
-                <span class="drop-fmt">.DXF</span>
-                <span class="drop-fmt">.JSON</span>
+                @foreach (var f in SupportedFormats)
+                {
+                    <span class="drop-fmt">.@f.Label</span>
+                }
             </div>
         </div>
 
@@ -170,13 +171,33 @@
 </div>
 
 @code {
-    private static readonly HashSet<string> AllowedExt = new() { "ifc", "dxf", "json" };
-    private static readonly Dictionary<string, string> Endpoints = new()
+    // ------------------------------------------------------------------
+    // Single source of truth for every upload format the UI advertises.
+    // Previously the extension list, endpoint mapping, and the hardcoded
+    // "drop-fmt" badges in the markup were three separate places that had
+    // to be kept in sync by hand. Adding a format is now a one-line change
+    // here instead of a multi-file edit.
+    // ------------------------------------------------------------------
+    private sealed record FormatInfo(string Ext, string Endpoint, string Label);
+
+    private static readonly List<FormatInfo> SupportedFormats = new()
     {
-        ["ifc"] = "/convert-ifc",
-        ["dxf"] = "/convert-dxf",
-        ["json"] = "/upload-json",
+        new("ifc", "/convert-ifc", "IFC"),
+        new("dxf", "/convert-dxf", "DXF"),
+        new("json", "/upload-json", "JSON"),
+        new("skp", "/convert-skp", "SKP"),
     };
+
+    private static readonly HashSet<string> AllowedExt =
+        SupportedFormats.Select(f => f.Ext).ToHashSet();
+
+    private static readonly Dictionary<string, string> Endpoints =
+        SupportedFormats.ToDictionary(f => f.Ext, f => f.Endpoint);
+
+    private static readonly string AcceptAttribute =
+        string.Join(",", SupportedFormats.Select(f => $".{f.Ext}"))
+        + ",application/octet-stream,application/json";
+
     private const long MaxUploadBytes = 100 * 1024 * 1024;
 
     private DotNetObjectReference<Viewer>? _selfRef;
